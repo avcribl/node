@@ -82,6 +82,61 @@ using v8::Uint32Array;
 using v8::Uint8Array;
 using v8::Value;
 
+// Helper function to create a sandbox-aware backing store
+std::unique_ptr<BackingStore> CreateBackingStore(
+    Isolate* isolate,
+    void* data,
+    size_t byte_length,
+    BackingStore::DeleterCallback deleter,
+    void* deleter_data) {
+#ifdef V8_ENABLE_SANDBOX
+  // fprintf(stderr, "CreateBackingStore: Sandbox is enabled!\n");
+  
+  // Get the allocator from the isolate
+  std::unique_ptr<ArrayBuffer::Allocator> allocator(ArrayBuffer::Allocator::NewDefaultAllocator());
+  // void* v8_data = allocator->Allocate(data.size());
+  if (!allocator) {
+    fprintf(stderr, "Failed to get array buffer allocator\n");
+    return nullptr;
+  }
+  
+  // Allocate memory using the isolate's allocator
+  void* allocated_data = allocator->Allocate(byte_length);
+  CHECK(allocated_data);
+  if (!allocated_data) {
+    fprintf(stderr, "Failed to allocate memory\n");
+    return nullptr;
+  }
+
+  // If we have data to copy, copy it into the allocated memory
+  if (data != nullptr) {
+    memcpy(allocated_data, data, byte_length);
+  }
+
+  // Create the backing store with the allocated data
+  auto store = ArrayBuffer::NewBackingStore(
+    allocated_data, 
+    byte_length, 
+    [](void* data, size_t length, void*) {
+      std::unique_ptr<ArrayBuffer::Allocator> allocator(ArrayBuffer::Allocator::NewDefaultAllocator());
+      allocator->Free(data, length);
+    },
+    nullptr
+  );
+
+  if (!store) {
+    fprintf(stderr, "Failed to create backing store\n");
+    allocator->Free(allocated_data, byte_length);
+    return nullptr;
+  }
+
+  return store;
+#else
+  fprintf(stderr, "CreateBackingStore: Sandbox is not enabled\n");
+  return ArrayBuffer::NewBackingStore(data, byte_length, deleter, deleter_data);
+#endif
+}
+
 namespace {
 
 class CallbackInfo : public Cleanable {
@@ -1235,7 +1290,8 @@ void GetZeroFillToggle(const FunctionCallbackInfo<Value>& args) {
   } else {
     uint32_t* zero_fill_field = allocator->zero_fill_field();
     std::unique_ptr<BackingStore> backing =
-        ArrayBuffer::NewBackingStore(zero_fill_field,
+                  CreateBackingStore(env->isolate(),
+                                     zero_fill_field,
                                      sizeof(*zero_fill_field),
                                      [](void*, size_t, void*) {},
                                      nullptr);
