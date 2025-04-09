@@ -338,7 +338,7 @@ std::unique_ptr<BackingStore> ByteSource::ReleaseToBackingStore(Environment* env
   // only if size_ is zero.
   CHECK_IMPLIES(size_ > 0, allocated_data_ != nullptr);
   std::unique_ptr<BackingStore> ptr = node::Buffer::CreateBackingStore(
-      env->isolate(),
+      nullptr,
       allocated_data_,
       size(),
       [](void* data, size_t length, void* deleter_data) {
@@ -670,7 +670,7 @@ void SecureBuffer(const FunctionCallbackInfo<Value>& args) {
   }
   std::shared_ptr<BackingStore> store =
       node::Buffer::CreateBackingStore(
-          env->isolate(),
+          nullptr,
           data,
           len,
           [](void* data, size_t len, void* deleter_data) {

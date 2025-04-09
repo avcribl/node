@@ -135,7 +135,7 @@ static void GetCategoryEnabledBuffer(const FunctionCallbackInfo<Value>& args) {
   uint8_t* enabled_pointer_cast = const_cast<uint8_t*>(enabled_pointer);
 
   std::unique_ptr<BackingStore> bs = node::Buffer::CreateBackingStore(
-      isolate,
+      nullptr,
       enabled_pointer_cast,
       sizeof(*enabled_pointer_cast),
       [](void*, size_t, void*) {},

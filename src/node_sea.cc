@@ -594,7 +594,7 @@ void GetAsset(const FunctionCallbackInfo<Value>& args) {
   // We cast away the constness here, the JS land should ensure that
   // the data is not mutated.
   std::unique_ptr<BackingStore> store = node::Buffer::CreateBackingStore(
-      args.GetIsolate(),
+      nullptr,
       const_cast<char*>(it->second.data()),
       it->second.size(),
       [](void*, size_t, void*) {},

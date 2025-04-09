@@ -169,7 +169,7 @@ MaybeLocal<Value> ToBuffer(Environment* env, BIOPointer* bio) {
   if (bio == nullptr || !*bio) return {};
   BUF_MEM* mem = *bio;
   auto backing = node::Buffer::CreateBackingStore(
-      env->isolate(),
+      nullptr,
       mem->data,
       mem->length,
       [](void*, size_t, void* data) {
