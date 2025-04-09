@@ -11,6 +11,7 @@
 #include "openssl/dh.h"
 #include "threadpoolwork-inl.h"
 #include "v8.h"
+#include "node_buffer.h"
 
 namespace node {
 
@@ -53,7 +54,8 @@ void DiffieHellman::MemoryInfo(MemoryTracker* tracker) const {
 
 namespace {
 MaybeLocal<Value> DataPointerToBuffer(Environment* env, DataPointer&& data) {
-  auto backing = ArrayBuffer::NewBackingStore(
+  auto backing = node::Buffer::CreateBackingStore(
+      env->isolate(),
       data.get(),
       data.size(),
       [](void* data, size_t len, void* ptr) { DataPointer free_me(data, len); },

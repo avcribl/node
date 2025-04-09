@@ -17,6 +17,7 @@
 #include "defs.h"
 #include "session.h"
 #include "transportparams.h"
+#include "node_buffer.h"
 
 namespace node {
 
@@ -218,7 +219,7 @@ int TLSContext::OnNewSession(SSL* ssl, SSL_SESSION* sess) {
     // and continue without emitting the sessionticket event.
     if (size > 0 && size <= crypto::SecureContext::kMaxSessionSize) {
       auto ticket =
-          ArrayBuffer::NewBackingStore(session.env()->isolate(), size);
+          node::Buffer::CreateBackingStore(session.env()->isolate(), nullptr, size, nullptr, nullptr);
       auto data = reinterpret_cast<unsigned char*>(ticket->Data());
       if (i2d_SSL_SESSION(sess, &data) > 0) {
         session.EmitSessionTicket(Store(std::move(ticket), size));

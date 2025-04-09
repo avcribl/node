@@ -178,7 +178,7 @@ Local<ArrayBuffer> CallbackInfo::CreateTrackedArrayBuffer(
 
   CallbackInfo* self = new CallbackInfo(env, callback, data, hint);
   std::unique_ptr<BackingStore> bs =
-      ArrayBuffer::NewBackingStore(data, length, [](void*, size_t, void* arg) {
+      CreateBackingStore(env->isolate(), data, length, [](void*, size_t, void* arg) {
         static_cast<CallbackInfo*>(arg)->OnBackingStoreFree();
       }, self);
   Local<ArrayBuffer> ab = ArrayBuffer::New(env->isolate(), std::move(bs));
@@ -249,7 +249,7 @@ void CallbackInfo::OnBackingStoreFree() {
   // If callback_ == nullptr, that means that the callback has already run from
   // the cleanup hook, and there is nothing left to do here besides to clean
   // up the memory involved. In particular, the underlying `Environment` may
-  // be gone at this point, so don’t attempt to call SetImmediateThreadsafe().
+  // be gone at this point, so don't attempt to call SetImmediateThreadsafe().
   if (callback_ == nullptr) return;
 
   env_->SetImmediateThreadsafe([self = std::move(self)](Environment* env) {
@@ -365,7 +365,7 @@ MaybeLocal<Object> New(Isolate* isolate,
   std::unique_ptr<BackingStore> store;
 
   if (length > 0) {
-    store = ArrayBuffer::NewBackingStore(isolate, length);
+    store = CreateBackingStore(isolate, nullptr, length, nullptr, nullptr);
 
     if (!store) [[unlikely]] {
       THROW_ERR_MEMORY_ALLOCATION_FAILED(isolate);
@@ -383,7 +383,7 @@ MaybeLocal<Object> New(Isolate* isolate,
     if (actual > 0) [[likely]] {
       if (actual < length) {
         std::unique_ptr<BackingStore> old_store = std::move(store);
-        store = ArrayBuffer::NewBackingStore(isolate, actual);
+        store = CreateBackingStore(isolate, nullptr, actual, nullptr, nullptr);
         memcpy(static_cast<char*>(store->Data()),
                static_cast<char*>(old_store->Data()),
                actual);
@@ -429,7 +429,7 @@ MaybeLocal<Object> New(Environment* env, size_t length) {
   {
     NoArrayBufferZeroFillScope no_zero_fill_scope(env->isolate_data());
     std::unique_ptr<BackingStore> bs =
-        ArrayBuffer::NewBackingStore(isolate, length);
+        CreateBackingStore(isolate, nullptr, length, nullptr, nullptr);
 
     CHECK(bs);
 
@@ -472,7 +472,7 @@ MaybeLocal<Object> Copy(Environment* env, const char* data, size_t length) {
   {
     NoArrayBufferZeroFillScope no_zero_fill_scope(env->isolate_data());
     std::unique_ptr<BackingStore> bs =
-        ArrayBuffer::NewBackingStore(isolate, length);
+        CreateBackingStore(isolate, nullptr, length, nullptr, nullptr);
 
     CHECK(bs);
 
@@ -573,7 +573,7 @@ MaybeLocal<Object> New(Environment* env,
     free(data);
   };
   std::unique_ptr<BackingStore> bs =
-      v8::ArrayBuffer::NewBackingStore(data, length, free_callback, nullptr);
+      CreateBackingStore(env->isolate(), data, length, free_callback, nullptr);
 
   Local<ArrayBuffer> ab = v8::ArrayBuffer::New(env->isolate(), std::move(bs));
 
@@ -1290,11 +1290,11 @@ void GetZeroFillToggle(const FunctionCallbackInfo<Value>& args) {
   } else {
     uint32_t* zero_fill_field = allocator->zero_fill_field();
     std::unique_ptr<BackingStore> backing =
-                  CreateBackingStore(env->isolate(),
-                                     zero_fill_field,
-                                     sizeof(*zero_fill_field),
-                                     [](void*, size_t, void*) {},
-                                     nullptr);
+        CreateBackingStore(env->isolate(),
+                         zero_fill_field,
+                         sizeof(*zero_fill_field),
+                         [](void*, size_t, void*) {},
+                         nullptr);
     ab = ArrayBuffer::New(env->isolate(), std::move(backing));
   }
 

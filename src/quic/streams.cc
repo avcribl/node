@@ -12,6 +12,7 @@
 #include "bindingdata.h"
 #include "defs.h"
 #include "session.h"
+#include "node_buffer.h"
 
 namespace node {
 
@@ -959,7 +960,7 @@ void Stream::ReceiveData(const uint8_t* data,
   }
 
   STAT_INCREMENT_N(Stats, bytes_received, len);
-  auto backing = ArrayBuffer::NewBackingStore(env()->isolate(), len);
+  auto backing = node::Buffer::CreateBackingStore(env()->isolate(), nullptr, len, nullptr, nullptr);
   memcpy(backing->Data(), data, len);
   inbound_->append(DataQueue::CreateInMemoryEntryFromBackingStore(
       std::move(backing), 0, len));

@@ -755,11 +755,11 @@ void UDPWrap::OnRecv(ssize_t nread,
     MakeCallback(env->onmessage_string(), arraysize(argv), argv);
     return;
   } else if (nread == 0) {
-    bs = ArrayBuffer::NewBackingStore(isolate, 0);
+    bs = node::Buffer::CreateBackingStore(isolate, nullptr, 0, nullptr, nullptr);
   } else if (static_cast<size_t>(nread) != bs->ByteLength()) {
     CHECK_LE(static_cast<size_t>(nread), bs->ByteLength());
     std::unique_ptr<BackingStore> old_bs = std::move(bs);
-    bs = ArrayBuffer::NewBackingStore(isolate, nread);
+    bs = node::Buffer::CreateBackingStore(isolate, nullptr, nread, nullptr, nullptr);
     memcpy(static_cast<char*>(bs->Data()),
            static_cast<char*>(old_bs->Data()),
            nread);

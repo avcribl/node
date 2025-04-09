@@ -295,7 +295,7 @@ Local<Value> Http2Settings::Pack(
   std::unique_ptr<BackingStore> bs;
   {
     NoArrayBufferZeroFillScope no_zero_fill_scope(env->isolate_data());
-    bs = ArrayBuffer::NewBackingStore(env->isolate(), count * 6);
+    bs = node::Buffer::CreateBackingStore(env->isolate(), nullptr, count * 6, nullptr, nullptr);
   }
   if (nghttp2_pack_settings_payload(static_cast<uint8_t*>(bs->Data()),
                                     bs->ByteLength(),
@@ -459,10 +459,10 @@ Origins::Origins(
 
   {
     NoArrayBufferZeroFillScope no_zero_fill_scope(env->isolate_data());
-    bs_ = ArrayBuffer::NewBackingStore(env->isolate(),
+    bs_ = node::Buffer::CreateBackingStore(env->isolate(), nullptr,
                                        alignof(nghttp2_origin_entry) - 1 +
                                        count_ * sizeof(nghttp2_origin_entry) +
-                                       origin_string_len);
+                                       origin_string_len, nullptr, nullptr);
   }
 
   // Make sure the start address is aligned appropriately for an nghttp2_nv*.
@@ -2080,7 +2080,7 @@ void Http2Session::OnStreamRead(ssize_t nread, const uv_buf_t& buf_) {
       [[likely]] {
     // Shrink to the actual amount of used data.
     std::unique_ptr<BackingStore> old_bs = std::move(bs);
-    bs = ArrayBuffer::NewBackingStore(env()->isolate(), nread);
+    bs = node::Buffer::CreateBackingStore(env()->isolate(), nullptr, nread, nullptr, nullptr);
     memcpy(static_cast<char*>(bs->Data()),
            static_cast<char*>(old_bs->Data()),
            nread);
@@ -2093,8 +2093,7 @@ void Http2Session::OnStreamRead(ssize_t nread, const uv_buf_t& buf_) {
     std::unique_ptr<BackingStore> new_bs;
     {
       NoArrayBufferZeroFillScope no_zero_fill_scope(env()->isolate_data());
-      new_bs = ArrayBuffer::NewBackingStore(env()->isolate(),
-                                            pending_len + nread);
+      new_bs = node::Buffer::CreateBackingStore(env()->isolate(), nullptr, pending_len + nread, nullptr, nullptr);
     }
     memcpy(static_cast<char*>(new_bs->Data()),
            stream_buf_.base + stream_buf_offset_,

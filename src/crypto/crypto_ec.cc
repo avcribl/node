@@ -207,7 +207,7 @@ void ECDH::ComputeSecret(const FunctionCallbackInfo<Value>& args) {
     // NOTE: field_size is in bits
     int field_size = EC_GROUP_get_degree(ecdh->group_);
     size_t out_len = (field_size + 7) / 8;
-    bs = ArrayBuffer::NewBackingStore(env->isolate(), out_len);
+    bs = node::Buffer::CreateBackingStore(env->isolate(), nullptr, out_len, nullptr, nullptr);
   }
 
   if (!ECDH_compute_key(
@@ -260,8 +260,7 @@ void ECDH::GetPrivateKey(const FunctionCallbackInfo<Value>& args) {
   std::unique_ptr<BackingStore> bs;
   {
     NoArrayBufferZeroFillScope no_zero_fill_scope(env->isolate_data());
-    bs = ArrayBuffer::NewBackingStore(env->isolate(),
-                                      BignumPointer::GetByteCount(b));
+    bs = node::Buffer::CreateBackingStore(env->isolate(), nullptr, BignumPointer::GetByteCount(b), nullptr, nullptr);
   }
   CHECK_EQ(bs->ByteLength(),
            BignumPointer::EncodePaddedInto(

@@ -9,6 +9,7 @@
 #include "node_mem-inl.h"
 #include "sqlite3.h"
 #include "util-inl.h"
+#include "node_buffer.h"
 
 #include <cinttypes>
 
@@ -181,7 +182,7 @@ class UserDefinedFunction {
           size_t size = static_cast<size_t>(sqlite3_value_bytes(value));
           auto data =
               reinterpret_cast<const uint8_t*>(sqlite3_value_blob(value));
-          auto store = ArrayBuffer::NewBackingStore(isolate, size);
+          auto store = node::Buffer::CreateBackingStore(isolate, nullptr, size, nullptr, nullptr);
           memcpy(store->Data(), data, size);
           auto ab = ArrayBuffer::New(isolate, std::move(store));
           js_val = Uint8Array::New(ab, 0, size);
@@ -1122,7 +1123,7 @@ MaybeLocal<Value> StatementSync::ColumnToValue(const int column) {
           static_cast<size_t>(sqlite3_column_bytes(statement_, column));
       auto data = reinterpret_cast<const uint8_t*>(
           sqlite3_column_blob(statement_, column));
-      auto store = ArrayBuffer::NewBackingStore(env()->isolate(), size);
+      auto store = node::Buffer::CreateBackingStore(env()->isolate(), nullptr, size, nullptr, nullptr);
       memcpy(store->Data(), data, size);
       auto ab = ArrayBuffer::New(env()->isolate(), std::move(store));
       return Uint8Array::New(ab, 0, size);

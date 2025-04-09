@@ -6,6 +6,7 @@
 #include "aliased_struct.h"
 #include "v8.h"
 #include <memory>
+#include "node_buffer.h"
 
 namespace node {
 
@@ -15,7 +16,7 @@ AliasedStruct<T>::AliasedStruct(v8::Isolate* isolate, Args&&... args)
     : isolate_(isolate) {
   const v8::HandleScope handle_scope(isolate);
 
-  store_ = v8::ArrayBuffer::NewBackingStore(isolate, sizeof(T));
+  store_ = node::Buffer::CreateBackingStore(isolate, nullptr, sizeof(T), nullptr, nullptr);
   ptr_ = new (store_->Data()) T(std::forward<Args>(args)...);
   DCHECK_NOT_NULL(ptr_);
 

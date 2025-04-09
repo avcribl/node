@@ -244,7 +244,7 @@ int StreamBase::Writev(const FunctionCallbackInfo<Value>& args) {
   std::unique_ptr<BackingStore> bs;
   if (storage_size > 0) {
     NoArrayBufferZeroFillScope no_zero_fill_scope(env->isolate_data());
-    bs = ArrayBuffer::NewBackingStore(isolate, storage_size);
+    bs = node::Buffer::CreateBackingStore(isolate, nullptr, storage_size, nullptr, nullptr);
   }
 
   offset = 0;
@@ -399,13 +399,13 @@ int StreamBase::WriteString(const FunctionCallbackInfo<Value>& args) {
   if (try_write) {
     // Copy partial data
     NoArrayBufferZeroFillScope no_zero_fill_scope(env->isolate_data());
-    bs = ArrayBuffer::NewBackingStore(isolate, buf.len);
+    bs = node::Buffer::CreateBackingStore(isolate, nullptr, buf.len, nullptr, nullptr);
     memcpy(static_cast<char*>(bs->Data()), buf.base, buf.len);
     data_size = buf.len;
   } else {
     // Write it
     NoArrayBufferZeroFillScope no_zero_fill_scope(env->isolate_data());
-    bs = ArrayBuffer::NewBackingStore(isolate, storage_size);
+      bs = node::Buffer::CreateBackingStore(isolate, nullptr, storage_size, nullptr, nullptr);
     data_size = StringBytes::Write(isolate,
                                    static_cast<char*>(bs->Data()),
                                    storage_size,
@@ -707,7 +707,7 @@ void EmitToJSStreamListener::OnStreamRead(ssize_t nread, const uv_buf_t& buf_) {
   CHECK_LE(static_cast<size_t>(nread), bs->ByteLength());
   if (static_cast<size_t>(nread) != bs->ByteLength()) {
     std::unique_ptr<BackingStore> old_bs = std::move(bs);
-    bs = ArrayBuffer::NewBackingStore(isolate, nread);
+    bs = node::Buffer::CreateBackingStore(isolate, nullptr, nread, nullptr, nullptr);
     memcpy(static_cast<char*>(bs->Data()),
            static_cast<char*>(old_bs->Data()),
            nread);
@@ -818,7 +818,7 @@ StreamResource::~StreamResource() {
   while (listener_ != nullptr) {
     StreamListener* listener = listener_;
     listener->OnStreamDestroy();
-    // Remove the listener if it didn’t remove itself. This makes the logic
+    // Remove the listener if it didn't remove itself. This makes the logic
     // in `OnStreamDestroy()` implementations easier, because they
     // may call generic cleanup functions which can just remove the
     // listener unconditionally.

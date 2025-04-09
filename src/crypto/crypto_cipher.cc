@@ -776,7 +776,7 @@ CipherBase::UpdateResult CipherBase::Update(
 
   {
     NoArrayBufferZeroFillScope no_zero_fill_scope(env()->isolate_data());
-    *out = ArrayBuffer::NewBackingStore(env()->isolate(), buf_len);
+    *out = node::Buffer::CreateBackingStore(env()->isolate(), nullptr, buf_len, nullptr, nullptr);
   }
 
   buffer = {
@@ -789,10 +789,10 @@ CipherBase::UpdateResult CipherBase::Update(
 
   CHECK_LE(static_cast<size_t>(buf_len), (*out)->ByteLength());
   if (buf_len == 0) {
-    *out = ArrayBuffer::NewBackingStore(env()->isolate(), 0);
+    *out = node::Buffer::CreateBackingStore(env()->isolate(), nullptr, 0, nullptr, nullptr);
   } else if (static_cast<size_t>(buf_len) != (*out)->ByteLength()) {
     std::unique_ptr<BackingStore> old_out = std::move(*out);
-    *out = ArrayBuffer::NewBackingStore(env()->isolate(), buf_len);
+    *out = node::Buffer::CreateBackingStore(env()->isolate(), nullptr, buf_len, nullptr, nullptr);
     memcpy(static_cast<char*>((*out)->Data()),
            static_cast<char*>(old_out->Data()),
            buf_len);
@@ -856,8 +856,8 @@ bool CipherBase::Final(std::unique_ptr<BackingStore>* out) {
 
   {
     NoArrayBufferZeroFillScope no_zero_fill_scope(env()->isolate_data());
-    *out = ArrayBuffer::NewBackingStore(
-        env()->isolate(), static_cast<size_t>(ctx_.getBlockSize()));
+    *out = node::Buffer::CreateBackingStore(
+        env()->isolate(), nullptr, static_cast<size_t>(ctx_.getBlockSize()), nullptr, nullptr);
   }
 
   if (kind_ == kDecipher &&
@@ -878,7 +878,7 @@ bool CipherBase::Final(std::unique_ptr<BackingStore>* out) {
   bool ok;
   if (kind_ == kDecipher && mode == EVP_CIPH_CCM_MODE) {
     ok = !pending_auth_failed_;
-    *out = ArrayBuffer::NewBackingStore(env()->isolate(), 0);
+    *out = node::Buffer::CreateBackingStore(env()->isolate(), nullptr, 0, nullptr, nullptr);
   } else {
     int out_len = (*out)->ByteLength();
     ok = ctx_.update(
@@ -886,10 +886,10 @@ bool CipherBase::Final(std::unique_ptr<BackingStore>* out) {
 
     CHECK_LE(static_cast<size_t>(out_len), (*out)->ByteLength());
     if (out_len == 0) {
-      *out = ArrayBuffer::NewBackingStore(env()->isolate(), 0);
+      *out = node::Buffer::CreateBackingStore(env()->isolate(), nullptr, 0, nullptr, nullptr);
     } else if (static_cast<size_t>(out_len) != (*out)->ByteLength()) {
       std::unique_ptr<BackingStore> old_out = std::move(*out);
-      *out = ArrayBuffer::NewBackingStore(env()->isolate(), out_len);
+      *out = node::Buffer::CreateBackingStore(env()->isolate(), nullptr, out_len, nullptr, nullptr);
       memcpy(static_cast<char*>((*out)->Data()),
              static_cast<char*>(old_out->Data()),
              out_len);
@@ -978,7 +978,7 @@ bool PublicKeyCipher::Cipher(
 
   {
     NoArrayBufferZeroFillScope no_zero_fill_scope(env->isolate_data());
-    *out = ArrayBuffer::NewBackingStore(env->isolate(), out_len);
+    *out = node::Buffer::CreateBackingStore(env->isolate(), nullptr, out_len, nullptr, nullptr);
   }
 
   if (EVP_PKEY_cipher(
@@ -992,10 +992,10 @@ bool PublicKeyCipher::Cipher(
 
   CHECK_LE(out_len, (*out)->ByteLength());
   if (out_len == 0) {
-    *out = ArrayBuffer::NewBackingStore(env->isolate(), 0);
+    *out = node::Buffer::CreateBackingStore(env->isolate(), nullptr, 0, nullptr, nullptr);
   } else if (out_len != (*out)->ByteLength()) {
     std::unique_ptr<BackingStore> old_out = std::move(*out);
-    *out = ArrayBuffer::NewBackingStore(env->isolate(), out_len);
+    *out = node::Buffer::CreateBackingStore(env->isolate(), nullptr, out_len, nullptr, nullptr);
     memcpy(static_cast<char*>((*out)->Data()),
            static_cast<char*>(old_out->Data()),
            out_len);

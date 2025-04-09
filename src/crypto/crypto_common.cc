@@ -310,7 +310,7 @@ MaybeLocal<Object> ECPointToBuffer(Environment* env,
   std::unique_ptr<BackingStore> bs;
   {
     NoArrayBufferZeroFillScope no_zero_fill_scope(env->isolate_data());
-    bs = ArrayBuffer::NewBackingStore(env->isolate(), len);
+    bs = node::Buffer::CreateBackingStore(env->isolate(), nullptr, len, nullptr, nullptr);
   }
 
   len = EC_POINT_point2oct(group,

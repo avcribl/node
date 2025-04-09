@@ -86,6 +86,13 @@ static inline bool IsWithinBounds(size_t off, size_t len, size_t max) {
   return true;
 }
 
+std::unique_ptr<v8::BackingStore> CreateBackingStore(
+    v8::Isolate* isolate,
+    void* data,
+    size_t byte_length,
+    v8::BackingStore::DeleterCallback deleter,
+    void* deleter_data);
+
 }  // namespace Buffer
 }  // namespace node
 

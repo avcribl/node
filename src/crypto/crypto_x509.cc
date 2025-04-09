@@ -9,6 +9,7 @@
 #include "node_errors.h"
 #include "util-inl.h"
 #include "v8.h"
+#include "node_buffer.h"
 
 #include <string>
 #include <vector>
@@ -167,7 +168,8 @@ MaybeLocal<Value> ToV8Value(Local<Context> context, const BIOPointer& bio) {
 MaybeLocal<Value> ToBuffer(Environment* env, BIOPointer* bio) {
   if (bio == nullptr || !*bio) return {};
   BUF_MEM* mem = *bio;
-  auto backing = ArrayBuffer::NewBackingStore(
+  auto backing = node::Buffer::CreateBackingStore(
+      env->isolate(),
       mem->data,
       mem->length,
       [](void*, size_t, void* data) {
@@ -671,7 +673,7 @@ MaybeLocal<Object> GetPubKey(Environment* env, OSSL3_CONST RSA* rsa) {
   std::unique_ptr<BackingStore> bs;
   {
     NoArrayBufferZeroFillScope no_zero_fill_scope(env->isolate_data());
-    bs = ArrayBuffer::NewBackingStore(env->isolate(), size);
+    bs = node::Buffer::CreateBackingStore(env->isolate(), nullptr, size, nullptr, nullptr);
   }
 
   unsigned char* serialized = reinterpret_cast<unsigned char*>(bs->Data());

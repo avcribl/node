@@ -1659,7 +1659,7 @@ def configure_v8(o, configs):
   o['variables']['v8_enable_sandbox'] = 1 if options.enable_pointer_compression else 0
   o['variables']['v8_enable_pointer_compression_shared_cage'] = 1 if options.enable_pointer_compression else 0
   o['variables']['v8_enable_external_code_space'] = 1 if options.enable_pointer_compression else 0
-  o['variables']['v8_enable_shared_ro_heap'] = 1 # it's a hack and should be 1 only when pointer compression is enabled
+  o['variables']['v8_enable_shared_ro_heap'] = 1 if options.enable_pointer_compression else 0
   o['variables']['v8_enable_31bit_smis_on_64bit_arch'] = 1 if options.enable_pointer_compression else 0
   # o['variables']['v8_enable_shared_ro_heap'] = 0 if options.enable_pointer_compression or options.disable_shared_ro_heap else 1
    

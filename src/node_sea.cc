@@ -12,6 +12,7 @@
 #include "node_union_bytes.h"
 #include "node_v8_platform-inl.h"
 #include "util-inl.h"
+#include "node_buffer.h"
 
 // The POSTJECT_SENTINEL_FUSE macro is a string of random characters selected by
 // the Node.js project that is present only once in the entire binary. It is
@@ -592,7 +593,8 @@ void GetAsset(const FunctionCallbackInfo<Value>& args) {
   }
   // We cast away the constness here, the JS land should ensure that
   // the data is not mutated.
-  std::unique_ptr<v8::BackingStore> store = ArrayBuffer::NewBackingStore(
+  std::unique_ptr<BackingStore> store = node::Buffer::CreateBackingStore(
+      args.GetIsolate(),
       const_cast<char*>(it->second.data()),
       it->second.size(),
       [](void*, size_t, void*) {},

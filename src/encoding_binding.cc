@@ -4,6 +4,7 @@
 #include "node_buffer.h"
 #include "node_errors.h"
 #include "node_external_reference.h"
+#include "node_buffer.h"
 #include "simdutf.h"
 #include "string_bytes.h"
 #include "v8.h"
@@ -126,7 +127,7 @@ void BindingData::EncodeUtf8String(const FunctionCallbackInfo<Value>& args) {
   {
     NoArrayBufferZeroFillScope no_zero_fill_scope(env->isolate_data());
     std::unique_ptr<BackingStore> bs =
-        ArrayBuffer::NewBackingStore(isolate, length);
+        node::Buffer::CreateBackingStore(isolate, nullptr, length, nullptr, nullptr);
 
     CHECK(bs);
 

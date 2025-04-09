@@ -31,6 +31,7 @@
 #include "streams.h"
 #include "tlscontext.h"
 #include "transportparams.h"
+#include "node_buffer.h"
 
 namespace node {
 
@@ -1401,7 +1402,7 @@ void Session::DatagramReceived(const uint8_t* data,
   // we just drop it on the floor.
   if (state_->datagram == 0 || datalen == 0) return;
 
-  auto backing = ArrayBuffer::NewBackingStore(env()->isolate(), datalen);
+  auto backing = node::Buffer::CreateBackingStore(env()->isolate(), nullptr, datalen, nullptr, nullptr);
   Debug(this, "Session is receiving datagram of size %zu", datalen);
   memcpy(backing->Data(), data, datalen);
   STAT_INCREMENT(Stats, datagrams_received);

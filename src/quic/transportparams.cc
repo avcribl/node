@@ -11,6 +11,7 @@
 #include "endpoint.h"
 #include "session.h"
 #include "tokens.h"
+#include "node_buffer.h"
 
 namespace node {
 
@@ -191,7 +192,7 @@ Store TransportParams::Encode(Environment* env, int version) {
 
   DCHECK_GT(size, 0);
 
-  auto result = ArrayBuffer::NewBackingStore(env->isolate(), size);
+  auto result = node::Buffer::CreateBackingStore(env->isolate(), nullptr, size, nullptr, nullptr);
 
   auto ret = ngtcp2_transport_params_encode_versioned(
       static_cast<uint8_t*>(result->Data()), size, version, &params_);

@@ -8,6 +8,7 @@
 #include "memory_tracker-inl.h"
 #include "threadpoolwork-inl.h"
 #include "v8.h"
+#include "node_buffer.h"
 
 #include <openssl/bn.h>
 #include <openssl/rsa.h>
@@ -538,8 +539,8 @@ Maybe<void> GetRsaKeyDetail(Environment* env,
   std::unique_ptr<BackingStore> public_exponent;
   {
     NoArrayBufferZeroFillScope no_zero_fill_scope(env->isolate_data());
-    public_exponent = ArrayBuffer::NewBackingStore(
-        env->isolate(), BignumPointer::GetByteCount(e));
+    public_exponent = node::Buffer::CreateBackingStore(
+        env->isolate(), nullptr, BignumPointer::GetByteCount(e), nullptr, nullptr);
   }
   CHECK_EQ(BignumPointer::EncodePaddedInto(
                e,

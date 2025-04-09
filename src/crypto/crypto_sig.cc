@@ -9,6 +9,7 @@
 #include "openssl/ec.h"
 #include "threadpoolwork-inl.h"
 #include "v8.h"
+#include "node_buffer.h"
 
 namespace node {
 
@@ -95,7 +96,7 @@ std::unique_ptr<BackingStore> Node_SignFinal(Environment* env,
   std::unique_ptr<BackingStore> sig;
   {
     NoArrayBufferZeroFillScope no_zero_fill_scope(env->isolate_data());
-    sig = ArrayBuffer::NewBackingStore(env->isolate(), sig_len);
+    sig = node::Buffer::CreateBackingStore(env->isolate(), nullptr, sig_len, nullptr, nullptr);
   }
   EVPKeyCtxPointer pkctx = pkey.newCtx();
   if (pkctx && EVP_PKEY_sign_init(pkctx.get()) > 0 &&
@@ -109,10 +110,10 @@ std::unique_ptr<BackingStore> Node_SignFinal(Environment* env,
                     m_len) > 0) {
     CHECK_LE(sig_len, sig->ByteLength());
     if (sig_len == 0) {
-      sig = ArrayBuffer::NewBackingStore(env->isolate(), 0);
+      sig = node::Buffer::CreateBackingStore(env->isolate(), nullptr, 0, nullptr, nullptr);
     } else if (sig_len != sig->ByteLength()) {
       std::unique_ptr<BackingStore> old_sig = std::move(sig);
-      sig = ArrayBuffer::NewBackingStore(env->isolate(), sig_len);
+      sig = node::Buffer::CreateBackingStore(env->isolate(), nullptr, sig_len, nullptr, nullptr);
       memcpy(static_cast<char*>(sig->Data()),
              static_cast<char*>(old_sig->Data()),
              sig_len);
@@ -173,7 +174,7 @@ std::unique_ptr<BackingStore> ConvertSignatureToP1363(
   std::unique_ptr<BackingStore> buf;
   {
     NoArrayBufferZeroFillScope no_zero_fill_scope(env->isolate_data());
-    buf = ArrayBuffer::NewBackingStore(env->isolate(), 2 * n);
+    buf = node::Buffer::CreateBackingStore(env->isolate(), nullptr, 2 * n, nullptr, nullptr);
   }
   if (!ExtractP1363(static_cast<unsigned char*>(signature->Data()),
                     static_cast<unsigned char*>(buf->Data()),

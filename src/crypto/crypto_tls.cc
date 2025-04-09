@@ -1089,7 +1089,7 @@ int TLSWrap::DoWrite(WriteWrap* w,
   if (nonempty_count != 1) {
     {
       NoArrayBufferZeroFillScope no_zero_fill_scope(env()->isolate_data());
-      bs = ArrayBuffer::NewBackingStore(env()->isolate(), length);
+      bs = node::Buffer::CreateBackingStore(env()->isolate(), nullptr, length, nullptr, nullptr);
     }
     size_t offset = 0;
     for (i = 0; i < count; i++) {
@@ -1108,7 +1108,7 @@ int TLSWrap::DoWrite(WriteWrap* w,
 
     if (written == -1) {
       NoArrayBufferZeroFillScope no_zero_fill_scope(env()->isolate_data());
-      bs = ArrayBuffer::NewBackingStore(env()->isolate(), length);
+      bs = node::Buffer::CreateBackingStore(env()->isolate(), nullptr, length, nullptr, nullptr);
       memcpy(bs->Data(), buf->base, buf->len);
     }
   }
@@ -1753,7 +1753,7 @@ void TLSWrap::GetFinished(const FunctionCallbackInfo<Value>& args) {
   std::unique_ptr<BackingStore> bs;
   {
     NoArrayBufferZeroFillScope no_zero_fill_scope(env->isolate_data());
-    bs = ArrayBuffer::NewBackingStore(env->isolate(), len);
+    bs = node::Buffer::CreateBackingStore(env->isolate(), nullptr, len, nullptr, nullptr);
   }
 
   CHECK_EQ(bs->ByteLength(),
@@ -1784,7 +1784,7 @@ void TLSWrap::GetPeerFinished(const FunctionCallbackInfo<Value>& args) {
   std::unique_ptr<BackingStore> bs;
   {
     NoArrayBufferZeroFillScope no_zero_fill_scope(env->isolate_data());
-    bs = ArrayBuffer::NewBackingStore(env->isolate(), len);
+    bs = node::Buffer::CreateBackingStore(env->isolate(), nullptr, len, nullptr, nullptr);
   }
 
   CHECK_EQ(bs->ByteLength(),
@@ -1813,7 +1813,7 @@ void TLSWrap::GetSession(const FunctionCallbackInfo<Value>& args) {
   std::unique_ptr<BackingStore> bs;
   {
     NoArrayBufferZeroFillScope no_zero_fill_scope(env->isolate_data());
-    bs = ArrayBuffer::NewBackingStore(env->isolate(), slen);
+    bs = node::Buffer::CreateBackingStore(env->isolate(), nullptr, slen, nullptr, nullptr);
   }
 
   unsigned char* p = static_cast<unsigned char*>(bs->Data());
@@ -2000,7 +2000,7 @@ void TLSWrap::ExportKeyingMaterial(const FunctionCallbackInfo<Value>& args) {
   std::unique_ptr<BackingStore> bs;
   {
     NoArrayBufferZeroFillScope no_zero_fill_scope(env->isolate_data());
-    bs = ArrayBuffer::NewBackingStore(env->isolate(), olen);
+    bs = node::Buffer::CreateBackingStore(env->isolate(), nullptr, olen, nullptr, nullptr);
   }
 
   ByteSource context;

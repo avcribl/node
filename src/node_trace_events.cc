@@ -4,6 +4,7 @@
 #include "node.h"
 #include "node_external_reference.h"
 #include "node_internals.h"
+#include "node_buffer.h"
 #include "node_v8_platform-inl.h"
 #include "tracing/agent.h"
 #include "util-inl.h"
@@ -133,7 +134,8 @@ static void GetCategoryEnabledBuffer(const FunctionCallbackInfo<Value>& args) {
       TRACE_EVENT_API_GET_CATEGORY_GROUP_ENABLED(category_name.out());
   uint8_t* enabled_pointer_cast = const_cast<uint8_t*>(enabled_pointer);
 
-  std::unique_ptr<BackingStore> bs = ArrayBuffer::NewBackingStore(
+  std::unique_ptr<BackingStore> bs = node::Buffer::CreateBackingStore(
+      isolate,
       enabled_pointer_cast,
       sizeof(*enabled_pointer_cast),
       [](void*, size_t, void*) {},

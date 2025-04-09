@@ -653,7 +653,7 @@ void IsolateData::MemoryInfo(MemoryTracker* tracker) const {
 
 void TrackingTraceStateObserver::UpdateTraceCategoryState() {
   if (!env_->owns_process_state() || !env_->can_call_into_js()) {
-    // Ideally, we’d have a consistent story that treats all threads/Environment
+    // Ideally, we'd have a consistent story that treats all threads/Environment
     // instances equally here. However, tracing is essentially global, and this
     // callback is called from whichever thread calls `StartTracing()` or
     // `StopTracing()`. The only way to do this in a threadsafe fashion
@@ -750,7 +750,7 @@ void Environment::add_refs(int64_t diff) {
 uv_buf_t Environment::allocate_managed_buffer(const size_t suggested_size) {
   NoArrayBufferZeroFillScope no_zero_fill_scope(isolate_data());
   std::unique_ptr<v8::BackingStore> bs =
-      v8::ArrayBuffer::NewBackingStore(isolate(), suggested_size);
+      node::Buffer::CreateBackingStore(isolate(), nullptr, suggested_size, nullptr, nullptr);
   uv_buf_t buf = uv_buf_init(static_cast<char*>(bs->Data()), bs->ByteLength());
   released_allocated_buffers_.emplace(buf.base, std::move(bs));
   return buf;

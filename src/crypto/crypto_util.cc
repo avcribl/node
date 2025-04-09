@@ -333,11 +333,12 @@ ByteSource& ByteSource::operator=(ByteSource&& other) noexcept {
   return *this;
 }
 
-std::unique_ptr<BackingStore> ByteSource::ReleaseToBackingStore() {
+std::unique_ptr<BackingStore> ByteSource::ReleaseToBackingStore(Environment* env) {
   // It's ok for allocated_data_ to be nullptr but
   // only if size_ is zero.
   CHECK_IMPLIES(size_ > 0, allocated_data_ != nullptr);
-  std::unique_ptr<BackingStore> ptr = ArrayBuffer::NewBackingStore(
+  std::unique_ptr<BackingStore> ptr = node::Buffer::CreateBackingStore(
+      env->isolate(),
       allocated_data_,
       size(),
       [](void* data, size_t length, void* deleter_data) {
@@ -351,7 +352,7 @@ std::unique_ptr<BackingStore> ByteSource::ReleaseToBackingStore() {
 }
 
 Local<ArrayBuffer> ByteSource::ToArrayBuffer(Environment* env) {
-  std::unique_ptr<BackingStore> store = ReleaseToBackingStore();
+  std::unique_ptr<BackingStore> store = ReleaseToBackingStore(env);
   return ArrayBuffer::New(env->isolate(), std::move(store));
 }
 
@@ -668,7 +669,8 @@ void SecureBuffer(const FunctionCallbackInfo<Value>& args) {
     return;
   }
   std::shared_ptr<BackingStore> store =
-      ArrayBuffer::NewBackingStore(
+      node::Buffer::CreateBackingStore(
+          env->isolate(),
           data,
           len,
           [](void* data, size_t len, void* deleter_data) {

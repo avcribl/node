@@ -6,6 +6,7 @@
 #include "ncrypto.h"
 #include "threadpoolwork-inl.h"
 #include "v8.h"
+#include "node_buffer.h"
 
 #include <compare>
 
@@ -79,7 +80,7 @@ MaybeLocal<Value> RandomPrimeTraits::EncodeOutput(
     Environment* env, const RandomPrimeConfig& params, ByteSource* unused) {
   size_t size = params.prime.byteLength();
   std::shared_ptr<BackingStore> store =
-      ArrayBuffer::NewBackingStore(env->isolate(), size);
+      node::Buffer::CreateBackingStore(env->isolate(), nullptr, size, nullptr, nullptr);
   CHECK_EQ(size,
            BignumPointer::EncodePaddedInto(
                params.prime.get(),
