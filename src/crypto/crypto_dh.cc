@@ -55,7 +55,7 @@ void DiffieHellman::MemoryInfo(MemoryTracker* tracker) const {
 namespace {
 MaybeLocal<Value> DataPointerToBuffer(Environment* env, DataPointer&& data) {
   auto backing = node::Buffer::CreateBackingStore(
-      nullptr,
+      env->isolate(),
       data.get(),
       data.size(),
       [](void* data, size_t len, void* ptr) { DataPointer free_me(data, len); },

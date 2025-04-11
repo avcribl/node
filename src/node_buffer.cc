@@ -95,8 +95,12 @@ std::unique_ptr<BackingStore> CreateBackingStore(
   // ArrayBuffer::Allocator to ensure it's within the sandbox memory region.
   // This creates a new backing store by first allocating memory through V8,
   // copying any existing data into it, and setting up proper deallocation.
-  std::unique_ptr<ArrayBuffer::Allocator> allocator(ArrayBuffer::Allocator::NewDefaultAllocator());
-  // void* v8_data = allocator->Allocate(data.size());
+  // std::unique_ptr<ArrayBuffer::Allocator> allocator(ArrayBuffer::Allocator::NewDefaultAllocator());
+  // auto allocator = std::make_unique<ArrayBuffer::Allocator>(
+  //   *ArrayBuffer::Allocator::NewDefaultAllocator()
+  // );
+  ArrayBuffer::Allocator* allocator = isolate->GetArrayBufferAllocator();
+  
   if (!allocator) {
     fprintf(stderr, "Failed to get array buffer allocator\n");
     return nullptr;
@@ -119,46 +123,56 @@ std::unique_ptr<BackingStore> CreateBackingStore(
   struct DeleterData {
     BackingStore::DeleterCallback original_deleter;
     void* original_deleter_data;
+    void* original_data;  // Store the original data pointer here
+    ArrayBuffer::Allocator* allocator;  // Store the allocator
   };
   
   // Create a new deleter data structure with the original deleter and data
-  DeleterData* combined_data = new DeleterData{deleter, deleter_data};
+  DeleterData* combined_data = new DeleterData{deleter, deleter_data, data,
+  //  allocator.release() // store raw pointer but transfer ownership manually
+   allocator
+  };
 
   // Create the backing store with the allocated data
   auto store = ArrayBuffer::NewBackingStore(
     allocated_memory, 
     byte_length, 
     [](void* data, size_t length, void* combined_deleter_data) {
-      // First free the memory using the allocator
-      std::unique_ptr<ArrayBuffer::Allocator> allocator(ArrayBuffer::Allocator::NewDefaultAllocator());
-      allocator->Free(data, length);
       
       // Then call the original deleter if it exists
       auto* deleter_info = static_cast<DeleterData*>(combined_deleter_data);
       if (deleter_info->original_deleter != nullptr) {
-        deleter_info->original_deleter(data, length, deleter_info->original_deleter_data);
+        // deleter_info->original_deleter(data, length, deleter_info->original_deleter_data);
+        deleter_info->original_deleter(deleter_info->original_data, length, deleter_info->original_deleter_data);
       }
-      
+
+
+      // std::unique_ptr<ArrayBuffer::Allocator> allocator(ArrayBuffer::Allocator::NewDefaultAllocator());
+      // allocator->Free(data, length);
+      deleter_info->allocator->Free(data, length);
+
       // Clean up our combined data
+      // delete deleter_info->allocator;
       delete deleter_info;
+
     },
     combined_data  // Pass our combined deleter data
   );
 
   if (!store) {
     fprintf(stderr, "Failed to create backing store\n");
-    allocator->Free(allocated_memory, byte_length);
+    // allocator->Free(allocated_memory, byte_length);
+    combined_data->allocator->Free(allocated_memory, byte_length);
+    // delete combined_data->allocator;
     delete combined_data;
     return nullptr;
   }
 
   return store;
 #else
-  if (isolate != nullptr) {
+  if (data == nullptr) {
     return ArrayBuffer::NewBackingStore(isolate, byte_length);
   }
-  // fprintf(stderr, "CreateBackingStore: Sandbox is not enabled\n");
-  // return ArrayBuffer::NewBackingStore(isolate, byte_length);
   return ArrayBuffer::NewBackingStore(data, byte_length, deleter, deleter_data);
 #endif
 }
@@ -204,7 +218,7 @@ Local<ArrayBuffer> CallbackInfo::CreateTrackedArrayBuffer(
 
   CallbackInfo* self = new CallbackInfo(env, callback, data, hint);
   std::unique_ptr<BackingStore> bs =
-      CreateBackingStore(nullptr, data, length, [](void*, size_t, void* arg) {
+      CreateBackingStore(env->isolate(), data, length, [](void*, size_t, void* arg) {
         static_cast<CallbackInfo*>(arg)->OnBackingStoreFree();
       }, self);
   Local<ArrayBuffer> ab = ArrayBuffer::New(env->isolate(), std::move(bs));
@@ -599,7 +613,7 @@ MaybeLocal<Object> New(Environment* env,
     free(data);
   };
   std::unique_ptr<BackingStore> bs =
-      CreateBackingStore(nullptr, data, length, free_callback, nullptr);
+      CreateBackingStore(env->isolate(), data, length, free_callback, nullptr);
 
   Local<ArrayBuffer> ab = v8::ArrayBuffer::New(env->isolate(), std::move(bs));
 
@@ -1316,7 +1330,7 @@ void GetZeroFillToggle(const FunctionCallbackInfo<Value>& args) {
   } else {
     uint32_t* zero_fill_field = allocator->zero_fill_field();
     std::unique_ptr<BackingStore> backing =
-        CreateBackingStore(nullptr,
+        CreateBackingStore(env->isolate(),
                          zero_fill_field,
                          sizeof(*zero_fill_field),
                          [](void*, size_t, void*) {},
