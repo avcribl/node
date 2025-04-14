@@ -90,25 +90,18 @@ std::unique_ptr<BackingStore> CreateBackingStore(
     BackingStore::DeleterCallback deleter,
     void* deleter_data) {
 #ifdef V8_ENABLE_SANDBOX
-  // fprintf(stderr, "CreateBackingStore: Sandbox is enabled!\n");
   // When V8 sandbox is enabled, we need to allocate memory through V8's
   // ArrayBuffer::Allocator to ensure it's within the sandbox memory region.
   // This creates a new backing store by first allocating memory through V8,
   // copying any existing data into it, and setting up proper deallocation.
-  // std::unique_ptr<ArrayBuffer::Allocator> allocator(ArrayBuffer::Allocator::NewDefaultAllocator());
-  // auto allocator = std::make_unique<ArrayBuffer::Allocator>(
-  //   *ArrayBuffer::Allocator::NewDefaultAllocator()
-  // );
   ArrayBuffer::Allocator* allocator = isolate->GetArrayBufferAllocator();
-  
   if (!allocator) {
     fprintf(stderr, "Failed to get array buffer allocator\n");
     return nullptr;
   }
   
-  // Allocate memory using the isolate's allocator
+  // Allocate memory using the isolate's allocator to ensure it's within the sandbox
   void* allocated_memory = allocator->Allocate(byte_length);
-  CHECK(allocated_memory);
   if (!allocated_memory) {
     fprintf(stderr, "Failed to allocate memory\n");
     return nullptr;
@@ -119,61 +112,56 @@ std::unique_ptr<BackingStore> CreateBackingStore(
     memcpy(allocated_memory, data, byte_length);
   }
 
-  // Create a struct to hold both the original deleter and its data
-  struct DeleterData {
-    BackingStore::DeleterCallback original_deleter;
-    void* original_deleter_data;
-    void* original_data;  // Store the original data pointer here
-    ArrayBuffer::Allocator* allocator;  // Store the allocator
+  // Define a structure to hold all the information needed for proper memory cleanup
+  struct BackingStoreDeleterContext {
+    BackingStore::DeleterCallback original_deleter;  // Original callback to free external resources
+    void* original_deleter_data;                     // Data passed to the original deleter
+    void* original_data;                             // Original data pointer
+    ArrayBuffer::Allocator* allocator;               // Allocator used to free the memory
   };
   
-  // Create a new deleter data structure with the original deleter and data
-  DeleterData* combined_data = new DeleterData{deleter, deleter_data, data,
-  //  allocator.release() // store raw pointer but transfer ownership manually
-   allocator
-  };
+  // Create a new deletion context with all the necessary information
+  BackingStoreDeleterContext* deletion_context = new BackingStoreDeleterContext{deleter, deleter_data, data, allocator};
 
-  // Create the backing store with the allocated data
+  // Create the backing store with the allocated data and a custom deleter
   auto store = ArrayBuffer::NewBackingStore(
     allocated_memory, 
     byte_length, 
-    [](void* data, size_t length, void* combined_deleter_data) {
+    [](void* data, size_t length, void* deletion_context_ptr) {
       
-      // Then call the original deleter if it exists
-      auto* deleter_info = static_cast<DeleterData*>(combined_deleter_data);
-      if (deleter_info->original_deleter != nullptr) {
-        // deleter_info->original_deleter(data, length, deleter_info->original_deleter_data);
-        deleter_info->original_deleter(deleter_info->original_data, length, deleter_info->original_deleter_data);
+      // Cast the deleter data back to our context structure
+      auto* context = static_cast<BackingStoreDeleterContext*>(deletion_context_ptr);
+      
+      // Call the original deleter if it exists to clean up any external resources
+      if (context->original_deleter != nullptr) {
+        context->original_deleter(context->original_data, length, context->original_deleter_data);
       }
 
+      // Free the memory using the allocator
+      context->allocator->Free(data, length);
 
-      // std::unique_ptr<ArrayBuffer::Allocator> allocator(ArrayBuffer::Allocator::NewDefaultAllocator());
-      // allocator->Free(data, length);
-      deleter_info->allocator->Free(data, length);
-
-      // Clean up our combined data
-      // delete deleter_info->allocator;
-      delete deleter_info;
-
+      // Clean up our deletion context
+      delete context;
     },
-    combined_data  // Pass our combined deleter data
+    deletion_context  // Pass our deletion context to the lambda
   );
 
+  // Handle the case where backing store creation fails
   if (!store) {
     fprintf(stderr, "Failed to create backing store\n");
-    // allocator->Free(allocated_memory, byte_length);
-    combined_data->allocator->Free(allocated_memory, byte_length);
-    // delete combined_data->allocator;
-    delete combined_data;
+    deletion_context->allocator->Free(allocated_memory, byte_length);
+    delete deletion_context;
     return nullptr;
   }
 
   return store;
 #else
-  if (data == nullptr) {
+  // When sandbox is not enabled, we can directly create the backing store
+  if (deleter != nullptr) {
+    return ArrayBuffer::NewBackingStore(data, byte_length, deleter, deleter_data);
+  } else {
     return ArrayBuffer::NewBackingStore(isolate, byte_length);
   }
-  return ArrayBuffer::NewBackingStore(data, byte_length, deleter, deleter_data);
 #endif
 }
 
